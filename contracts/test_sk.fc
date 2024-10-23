@@ -1,0 +1,56 @@
+#include "imports/stdlib.fc";
+
+;; память ск / больше памяти = больше комиссии 
+() set_storage(int value) impure {
+  set_data(
+    begin_cell()
+            .store_uint(value, 64)
+        .end_cell()
+  );
+}
+
+int load_storage() impure {
+  slice contract_storage = get_data().begin_parse();
+  return (
+    contract_storage~load_uint(64)
+  );
+}
+
+;; main // получить втренее смс
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+  if (in_msg_body.slice_empty?()) {
+    return ();
+  }
+
+  slice sliced_message = in_msg_full.begin_parse();
+
+  int flags = sliced_message~load_uint(4);
+
+  if (flags & 1) {
+    return ();
+  }
+
+  slice sender_address = sliced_message~load_msg_addr();
+  
+
+  int opcode = in_msg_body~load_uint(16); ;; стандар 32 бита
+  int figna = in_msg_body~load_uint(64);
+
+  int value = load_storage();
+
+  if opcode == 69 {
+    value += figna;
+    set_storage(value);
+    return ();
+  }
+
+
+  throw(228);
+
+}
+
+int get_value() method_id {
+  int value = load_storage();
+  return value;
+}
+
